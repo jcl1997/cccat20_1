@@ -1,8 +1,9 @@
-drop schema if exists ccca cascade;
+-- CREATE DATABASE app;
+-- DROP SCHEMA IF EXISTS ccca CASCADE;
 
-create schema ccca;
+CREATE SCHEMA ccca;
 
-create table ccca.account (
+CREATE TABLE ccca.account (
 	account_id uuid primary key,
 	name text not null,
 	email text not null,
