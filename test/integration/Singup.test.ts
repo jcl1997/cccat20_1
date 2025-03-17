@@ -1,16 +1,23 @@
-import {AccountDaoDatabase, AccountDaoMemory} from "../src/data";
-import GetAccount from "../src/getAccount";
-import Signup from "../src/signup";
+import Account from "../../src/domain/Account";
+import DatabaseConnection, { PgPromiseAdapter } from "../../src/infra/database/DatabaseConnection";
+import GetAccount from "../../src/application/usecase/GetAccount";
+import Registry from "../../src/infra/di/Registry";
+import Signup from "../../src/application/usecase/Signup";
 import sinon from "sinon"
+import { AccountRepositoryDatabase, AccountRepositoryMemory } from "../../src/infra/repository/AccountRepository";
 
 let signup: Signup;
 let getAccount: GetAccount;
+let databaseConnection: DatabaseConnection;
 
 beforeEach(() => {
-    const accountDao = new AccountDaoDatabase();
-    // const accountDao = new AccountDaoMemory();
-    signup = new Signup(accountDao);
-    getAccount = new GetAccount(accountDao);
+    databaseConnection = new PgPromiseAdapter();
+    const accountRepository = new AccountRepositoryDatabase();
+    Registry.getInstance().provide("databaseConnection", databaseConnection);
+    Registry.getInstance().provide("accountRepository", accountRepository);
+    // const accountRepository = new AccountDaoMemory();
+    signup = new Signup();
+    getAccount = new GetAccount();
 })
 
 test("Deve fazer a criação da conta de um usuáriso do tipo passageiro", async function () {
@@ -46,8 +53,8 @@ test("Deve fazer a criação da conta de um usuáriso do tipo motorista", async 
     expect(outputGetAccount.email).toBe(input.email)
     expect(outputGetAccount.cpf).toBe(input.cpf)
     expect(outputGetAccount.password).toBe(input.password)
-    expect(outputGetAccount.car_plate).toBe(input.carPlate)
-    expect(outputGetAccount.is_driver).toBe(input.isDriver)
+    expect(outputGetAccount.carPlate).toBe(input.carPlate)
+    expect(outputGetAccount.isDriver).toBe(input.isDriver)
 });
 
 test("Não Deve fazer a criação da conta de um usuáriso se o nome for invalido", async function () {
@@ -119,32 +126,25 @@ test("Não Deve fazer a criação da conta de um usuáriso se a placa estiver in
 });
 
 test("Deve fazer a criação da conta de um usuáriso do tipo passageiro com stub", async function () {
-    const input = {
-        name: "John Doe",
-        email: `john.doe${Math.random()}@gmail.com`,
-        cpf: "97456321558",
-        password: "asdQWE123",
-        isPassenger: true,
-    };
-
-    const savaAccountStub = sinon.stub(AccountDaoDatabase.prototype, "saveAccount").resolves();
-    const getAccountByEmailStub = sinon.stub(AccountDaoDatabase.prototype, "getAccountByEmail").resolves();
-    const getAccountByIdStub = sinon.stub(AccountDaoDatabase.prototype, "getAccountById").resolves(input);
-    const outputSignup = await signup.execute(input);
+    const account = Account.create("John Doe", `john.doe${Math.random()}@gmail.com`, '97456321558', 'asdQWE123', '', true, false);
+    const savaAccountStub = sinon.stub(AccountRepositoryDatabase.prototype, "saveAccount").resolves();
+    const getAccountByEmailStub = sinon.stub(AccountRepositoryDatabase.prototype, "getAccountByEmail").resolves();
+    const getAccountByIdStub = sinon.stub(AccountRepositoryDatabase.prototype, "getAccountById").resolves(account);
+    const outputSignup = await signup.execute(account);
     expect(outputSignup.accountId).toBeDefined();
     const outputGetAccount = await getAccount.execute(outputSignup.accountId);
-    expect(outputGetAccount.name).toBe(input.name)
-    expect(outputGetAccount.email).toBe(input.email)
-    expect(outputGetAccount.cpf).toBe(input.cpf)
-    expect(outputGetAccount.password).toBe(input.password)
+    expect(outputGetAccount.name).toBe(account.name)
+    expect(outputGetAccount.email).toBe(account.email)
+    expect(outputGetAccount.cpf).toBe(account.cpf)
+    expect(outputGetAccount.password).toBe(account.password)
     savaAccountStub.restore();
     getAccountByEmailStub.restore();
     getAccountByIdStub.restore();
 });
 
 test("Deve faze a criação da conta de um usuáriso do tipo passageiro com spy", async function () {
-    const saveAccountSpy = sinon.spy(AccountDaoDatabase.prototype, "saveAccount")
-    const getAccountByIdSpy = sinon.spy(AccountDaoDatabase.prototype, "getAccountById")
+    const saveAccountSpy = sinon.spy(AccountRepositoryDatabase.prototype, "saveAccount")
+    const getAccountByIdSpy = sinon.spy(AccountRepositoryDatabase.prototype, "getAccountById")
     const input = {
         name: "John Doe",
         email: `john.doe${Math.random()}@gmail.com`,
@@ -174,7 +174,7 @@ test("Deve faze a criação da conta de um usuáriso do tipo passageiro com mock
         password: "asdQWE123",
         isPassenger: true,
     };
-    const accountDaoMock = sinon.mock(AccountDaoDatabase.prototype);
+    const accountDaoMock = sinon.mock(AccountRepositoryDatabase.prototype);
     accountDaoMock.expects("saveAccount").once().resolves();
     const outputSignup = await signup.execute(input);
     expect(outputSignup.accountId).toBeDefined();
@@ -188,10 +188,11 @@ test("Deve faze a criação da conta de um usuáriso do tipo passageiro com mock
     accountDaoMock.restore();
 });
 
-test.only("Deve faze a criação da conta de um usuáriso do tipo passageiro com fake", async function () {
-    const accountDao = new AccountDaoMemory();
-    signup = new Signup(accountDao);
-    getAccount = new GetAccount(accountDao);
+test("Deve faze a criação da conta de um usuáriso do tipo passageiro com fake", async function () {
+    const accountRepository = new AccountRepositoryMemory();
+    Registry.getInstance().provide("accountRepository", accountRepository);
+    signup = new Signup();
+    getAccount = new GetAccount();
     const input = {
         name: "John Doe",
         email: `john.doe${Math.random()}@gmail.com`,
@@ -206,4 +207,8 @@ test.only("Deve faze a criação da conta de um usuáriso do tipo passageiro com
     expect(outputGetAccount.email).toBe(input.email);
     expect(outputGetAccount.cpf).toBe(input.cpf);
     expect(outputGetAccount.password).toBe(input.password);;
+});
+
+afterEach(async () => {
+    await databaseConnection.close();
 });

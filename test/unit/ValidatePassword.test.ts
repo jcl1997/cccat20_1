@@ -1,4 +1,4 @@
-import { validatePassword } from "../src/validatePassword";
+import { validatePassword } from "../../src/domain/ValidatePassword";
 
 test.each([
     "asdFGH123",

@@ -22,7 +22,7 @@ test("Deve fazer a criação da conta de um usuáriso do tipo passageiro", async
     expect(outputGetAccount.email).toBe(input.email)
     expect(outputGetAccount.cpf).toBe(input.cpf)
     expect(outputGetAccount.password).toBe(input.password)
-    expect(outputGetAccount.is_passenger).toBe(input.isPassenger)
+    expect(outputGetAccount.isPassenger).toBe(input.isPassenger)
 });
 
 test("Não Deve fazer a criação da conta de um usuáriso se o nome for invalido", async function () {

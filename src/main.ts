@@ -1,0 +1,21 @@
+import Signup from "./application/usecase/Signup";
+import GetAccount from "./application/usecase/GetAccount";
+import Registry from "./infra/di/Registry";
+import { PgPromiseAdapter } from "./infra/database/DatabaseConnection";
+import { ExpressAdapter, HapiAdapter } from "./infra/http/HttpServer";
+import AccountController from "./infra/controller/AccountController";
+import { AccountRepositoryDatabase } from "./infra/repository/AccountRepository";
+
+const accountRepository = new AccountRepositoryDatabase();
+const databaseConnection = new PgPromiseAdapter();
+const signup = new Signup();
+const getAccount = new GetAccount();
+const httpServer = new ExpressAdapter();
+// const httpServer = new HapiAdapter();
+Registry.getInstance().provide("databaseConnection", databaseConnection);
+Registry.getInstance().provide("accountRepository", accountRepository);
+Registry.getInstance().provide("httpServer", httpServer);
+Registry.getInstance().provide("signup", signup);
+Registry.getInstance().provide("getAccount", getAccount);
+new AccountController();
+httpServer.listen(3000);
