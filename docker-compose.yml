@@ -1,4 +1,13 @@
 services:
+  node_app:
+    image: node:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+    working_dir: /usr/src/app
+    networks:
+      - branas_cccat20_1_network
   postgres:
     image: postgres:14.3
     environment:
@@ -8,3 +17,9 @@ services:
       - "5432:5432"
     volumes:
       - ./create.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - branas_cccat20_1_network
+
+networks:
+  branas_cccat20_1_network:
+    driver: bridge
